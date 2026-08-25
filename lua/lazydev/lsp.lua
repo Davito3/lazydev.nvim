@@ -68,11 +68,12 @@ function M.on_workspace_configuration(err, params, ctx, cfg)
     return {}
   end
 
+  local client_type = M.which_client(client)
   local response = {}
   for _, item in ipairs(params.items) do
     if item.section then
       local settings = client.settings
-      if item.section == "Lua" or item.section == "emmylua" then
+      if item.section == client_type then
         local ws = item.scopeUri and Workspace.get(client, vim.uri_to_fname(item.scopeUri)) or Workspace.single(client)
         if ws:enabled() then
           settings = ws.settings
@@ -97,10 +98,12 @@ end
 ---@param client vim.lsp.Client
 function M.update(client)
   M.assert(client)
-  local targ_settings = {}
   local client_type = M.which_client(client)
-  if client_type then
-    targ_settings[client_type] = {}
+  local targ_settings = {}
+  if client_type == "Lua" then
+    targ_settings = { Lua = {} }
+  elseif client_type == "emmylua" then
+    targ_settings = { emmylua = {} }
   end
 
   if vim.fn.has("nvim-0.11") == 1 then
