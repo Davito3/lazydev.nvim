@@ -72,7 +72,7 @@ function M.on_workspace_configuration(err, params, ctx, cfg)
   for _, item in ipairs(params.items) do
     if item.section then
       local settings = client.settings
-      if item.section == "Lua" then
+      if item.section == "Lua" or item.section == "emmylua" then
         local ws = item.scopeUri and Workspace.get(client, vim.uri_to_fname(item.scopeUri)) or Workspace.single(client)
         if ws:enabled() then
           settings = ws.settings
