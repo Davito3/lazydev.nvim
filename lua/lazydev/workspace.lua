@@ -177,29 +177,47 @@ function M:update()
   vim.list_extend(libs, M.global().library)
   vim.list_extend(libs, self.library)
 
+  local client_type = require("lazydev.lsp").which_client(client)
   ---@type string[]
-  local library = vim.tbl_get(settings, "Lua", "workspace", "library") or {}
+  local library = vim.tbl_get(settings, client_type, "workspace", "library") or {}
   for _, path in ipairs(libs) do
     if not vim.tbl_contains(library, path) then
       table.insert(library, path)
     end
   end
 
-  settings = vim.tbl_deep_extend("force", settings, {
-    Lua = {
-      runtime = {
-        version = "LuaJIT",
-        path = Config.lua_root and { "?.lua", "?/init.lua" } or { "lua/?.lua", "lua/?/init.lua" },
-        pathStrict = true,
-      },
-      workspace = {
-        checkThirdParty = false,
-        library = library,
-        ignoreDir = Config.lua_root and { "/lua" } or nil,
-      },
-    },
-  })
-
+  if client_type == "Lua" then
+    settings = vim.tbl_deep_extend("force", settings, {
+      [client_type] = {
+        runtime = {
+          version = "LuaJIT",
+          path = Config.lua_root and { "?.lua", "?/init.lua" } or { "lua/?.lua", "lua/?/init.lua" },
+          pathStrict = true
+        },
+        workspace = {
+          checkThirdParty = false,
+          library = library,
+          ignoreDir = Config.lua_root and { "/lua" } or nil
+        }
+      }
+    })
+  elseif client_type == "emmylua" then
+    settings = vim.tbl_deep_extend("force", settings, {
+      [client_type] = {
+        runtime = {
+          version = "LuaJIT",
+          requirePattern = Config.lua_root and { "?.lua", "?/init.lua" } or { "lua/?.lua", "lua/?/init.lua" }
+        },
+        strict = {
+          requirePath = true
+        },
+        workspace = {
+          library = library,
+          ignoreDir = Config.lua_root and { "/lua" } or nil
+        }
+      }
+    })
+  end
   if not vim.deep_equal(settings, self.settings) then
     self.settings = settings
     if Config.debug then
@@ -219,7 +237,7 @@ function M:debug(opts)
   local root = M.is_special(self.root) and "[" .. self.root .. "]" or vim.fn.fnamemodify(self.root, ":~")
   local lines = { "## " .. root }
   ---@type string[]
-  local library = vim.tbl_get(self.settings, "Lua", "workspace", "library") or {}
+  local library = vim.tbl_get(self.settings, require("lazydev.lsp").which_client(self:client()), "workspace", "library") or {}
   for _, lib in ipairs(library) do
     lib = vim.fn.fnamemodify(lib, ":~")
     local plugin = Pkg.get_plugin_name(lib .. "/")

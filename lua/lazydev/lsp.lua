@@ -15,6 +15,15 @@ function M.supports(client)
   return client and vim.tbl_contains(M.supported_clients, client.name)
 end
 
+---@param lsp_cl vim.lsp.Client?
+function M.which_client(lsp_cl)
+  if lsp_cl.name == M.supported_clients[1] then
+    return "Lua"
+  elseif lsp_cl.name == M.supported_clients[2] then
+    return "emmylua"
+  end
+end
+
 ---@param client vim.lsp.Client
 function M.attach(client)
   if M.attached[client.id] then
@@ -88,13 +97,19 @@ end
 ---@param client vim.lsp.Client
 function M.update(client)
   M.assert(client)
+  local targ_settings = {}
+  local client_type = M.which_client(client)
+  if client_type then
+    targ_settings[client_type] = {}
+  end
+
   if vim.fn.has("nvim-0.11") == 1 then
     client:notify("workspace/didChangeConfiguration", {
-      settings = { Lua = {} },
+      settings = targ_settings
     })
   else
     client.notify("workspace/didChangeConfiguration", {
-      settings = { Lua = {} },
+      settings = targ_settings
     })
   end
 end
